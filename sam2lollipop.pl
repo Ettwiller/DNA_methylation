@@ -1,19 +1,17 @@
 #!/usr/bin/perl
-
-
 use strict;
-use warnings;
 use Getopt::Long qw(GetOptions);
 
-
+#change the path to the correct one :
+my $PATH = "/home/ettwiller/bin/MethylationDiagrams.jar";
 my $samfile;
-my $path_to_BiQ = "/home/ettwiller/exe/BiQ_analyser_diagram/MethylationDiagrams.jar";
 my $random = 0;
-
-my $usage_sentence = "perl $0 --sam samfile.sam OPTIONAL : --random 1\n";
+my $converted = 0;
+my $usage_sentence = "perl $0 --sam samfile.sam OPTIONAL : --random 1 (default 0) --converted 1 (default 0)\n";
 
 GetOptions ("sam=s" => \$samfile,    # numeric
-	    "random=s" => $random
+	    "random=s" => \$random,
+	    "converted=s" => \$converted
     ) or die $usage_sentence;
 
 if (!$samfile) {die $usage_sentence;}
@@ -23,7 +21,7 @@ $generic =~ s/.*\///g;
 $generic =~ s/\.sam//;
 my $sam = "tmp_".$generic.".sam";
 
-my $c1 = "samtools view -f 98 $samfile > $sam";
+my $c1 = "samtools view  -S -f 98 $samfile > $sam";
 system($c1);
 
 
@@ -47,18 +45,24 @@ for (my $i=0; $i<$size; $i++)
 {
     my $line = $$biq_methylation[$i];
 #    my $line = $$biq_methylation_random[$i];
- 
-    my $pattern = "I"; #get the converted 
+    my $pattern ="I";
+    if ($converted == 1){
+	$pattern = "0"; #get the converted
+    }
     my $total_pattern = "[I, 0]";
+    
     my $c = () = $line =~ /$pattern/g;
     my $C= () = $line =~ /$total_pattern/g;
-    if ($c>0 && $cutoff < 200)
+    if ($c>0 && $cutoff < 100)
     {
 #	$line = $random;
 	#inverse the colors !!!!
-#	$line=~ s/I/z/g; 
-#	$line=~ s/0/I/g;
-#        $line=~ s/z/0/g;
+	if ($converted == 1)
+	{
+	    $line=~ s/I/z/g; 
+	    $line=~ s/0/I/g;
+	    $line=~ s/z/0/g;
+	}
 	$cutoff++;
 	print IN "Seq $i\t$line\n";
     }
@@ -72,7 +76,7 @@ my $svg1 = $generic.".svg";
 my $png2 = $generic.".png".".tmp";
 my $svg2 = $generic.".svg".".tmp";
 
-my $command  = "java -jar /home/ettwiller/exe/BiQ_analyser_diagram/MethylationDiagrams.jar $IN uncompressed $txt $html $png1 $svg1 $png2 $svg2 true false 1 5000 5 false true FFFF00 0000FF 808080";
+my $command  = "java -jar $PATH $IN uncompressed $txt $html $png1 $svg1 $png2 $svg2 true false 1 5000 5 false true FFFF00 0000FF 808080";
 
 system($command);
 my $command2 = "rm $generic*tmp";
